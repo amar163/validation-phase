@@ -76,9 +76,10 @@ resource "aws_inspector_assessment_template" "bar-template" {
   target_arn = aws_inspector_assessment_target.myinspect.arn
   duration   = 180
   rules_package_arns = [
-    "arn:aws:inspector:ap-south-1:162588757376:rulespackage/0-LqnJE9dO",
-    "arn:aws:inspector:ap-south-1:162588757376:rulespackage/0-PSUlX14m",
-    "arn:aws:inspector:ap-south-1:162588757376:rulespackage/0-YxKfjFu1",
+     "arn:aws:inspector:us-east-1:316112463485:rulespackage/0-gEjTy7T7",
+    "arn:aws:inspector:us-east-1:316112463485:rulespackage/0-rExsr2X8",
+    "arn:aws:inspector:us-east-1:316112463485:rulespackage/0-R01qwB5Q",
+    "arn:aws:inspector:us-east-1:316112463485:rulespackage/0-gBONHN9h",
   ]
 }
 
