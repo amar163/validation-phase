@@ -1,0 +1,100 @@
+# resource "aws_iam_instance_profile" "test_profile" {
+#   name = "test_profile"
+#   role = aws_iam_role.role.name
+# }
+
+# resource "aws_iam_role" "role" {
+#   name = "test_role"
+#   path = "/"
+
+#   assume_role_policy = <<EOF
+# {
+#     "Version": "2012-10-17",
+#     "Statement": [
+#         {
+#             "Action": "sts:AssumeRole",
+#             "Principal": {
+#                "Service": "ec2.amazonaws.com"
+#             },
+#             "Effect": "Allow",
+#             "Sid": ""
+#         }
+#     ]
+# }
+# EOF
+# }
+
+resource "random_id" "id"{
+  byte_length = 8
+}
+
+resource "aws_instance" "inspector-instance" {
+  ami = var.AMI_ID
+  instance_type = "t2.micro"
+  # iam_instance_profile = aws_iam_instance_profile.test_profile.name
+  security_groups = ["${aws_security_group.sample_sg.name}"]
+  # user_data = file("startup.sh")
+
+  tags = {
+    Name = "InspectInstances-${random_id.id.hex}"
+  }
+  depends_on = [aws_inspector_resource_group.bar]
+
+}
+
+resource "aws_security_group" "sample_sg" {
+  name = "Allow SSH-${random_id.id.hex}"
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "TCP"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+}
+
+resource "aws_inspector_resource_group" "bar" {
+  tags = {
+    Name = "InspectInstances-${random_id.id.hex}"
+  }
+}
+
+resource "aws_inspector_assessment_target" "myinspect" {
+  name = "inspector-instance-assessment-${random_id.id.hex}"
+  resource_group_arn = aws_inspector_resource_group.bar.arn
+}
+
+resource "aws_inspector_assessment_template" "bar-template" {
+  name       = "bar-template-${random_id.id.hex}"
+  target_arn = aws_inspector_assessment_target.myinspect.arn
+  duration   = 180
+  rules_package_arns = [
+    "arn:aws:inspector:ap-south-1:162588757376:rulespackage/0-LqnJE9dO",
+    "arn:aws:inspector:ap-south-1:162588757376:rulespackage/0-PSUlX14m",
+    "arn:aws:inspector:ap-south-1:162588757376:rulespackage/0-YxKfjFu1",
+  ]
+}
+
+resource "null_resource" "example1" {
+  provisioner "remote-exec" {
+    connection {
+      type = "ssh"
+      user = "ansible"
+      password = "ansible123"
+      host = aws_instance.inspector-instance.public_ip
+    }
+    inline = [
+      "wget https://d1wk0tztpsntt1.cloudfront.net/linux/latest/install -P /tmp/",
+      "sudo bash /tmp/install",
+      "sudo systemctl start awsagent"
+    ]
+  }
+  depends_on = [aws_instance.inspector-instance]
+}
